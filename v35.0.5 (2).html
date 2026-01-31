@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LuxeHome Hyper-Evo V7</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #B88E2F; --dark: #121212; }
+        * { -webkit-tap-highlight-color: transparent; scrollbar-width: none; outline: none; }
+        body { background: #000; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+
+        .app-container {
+            width: 375px; height: 812px; background: #fff; border: 8px solid #1a1a1a; border-radius: 45px;
+            position: relative; overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 0 100px rgba(0,0,0,0.7);
+        }
+
+        .serif { font-family: 'Cormorant Garamond', serif; }
+        .main-view { flex: 1; overflow-y: scroll; scroll-behavior: smooth; }
+        .page { display: none; min-height: 100%; background: #fff; padding-bottom: 120px; }
+        .page.active { display: block; animation: pageUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        @keyframes pageUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .bottom-sheet {
+            position: absolute; bottom: -100%; left: 0; width: 100%; background: white;
+            border-top-left-radius: 40px; border-top-right-radius: 40px; z-index: 100;
+            transition: 0.5s cubic-bezier(0.32, 0.72, 0, 1); box-shadow: 0 -20px 40px rgba(0,0,0,0.1);
+        }
+        .bottom-sheet.open { bottom: 0; }
+        .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; display: none; backdrop-filter: blur(4px); }
+
+        .btn-premium { background: var(--dark); color: #fff; padding: 18px; border-radius: 16px; font-weight: 700; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; width: 100%; transition: 0.3s; }
+        .nav-trigger { transition: all 0.3s ease; color: #ccc; }
+        .nav-trigger.active { color: var(--dark); transform: translateY(-3px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        img { background: #f7f7f7; transition: opacity 0.3s ease; }
+        .product-card { transition: transform 0.2s; }
+        .product-card:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="overlay" class="overlay" onclick="closeAllSheets()"></div>
+
+    <header class="flex justify-between items-center px-8 py-6 z-50 bg-white/80 backdrop-blur-md sticky top-0">
+        <div class="serif text-3xl tracking-tighter cursor-pointer" onclick="app.showPage('home')">NEO SPACE</div>
+        <div class="flex items-center gap-6">
+            <button onclick="toggleSheet('search-sheet')"><i data-lucide="search" class="w-5 h-5 stroke-[1.5]"></i></button>
+            <button onclick="app.showPage('cart')" class="relative">
+                <i data-lucide="shopping-bag" class="w-5 h-5 stroke-[1.5]"></i>
+                <span id="cart-badge" class="absolute -top-1 -right-1 w-2 h-2 bg-amber-600 rounded-full hidden border border-white"></span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-view no-scrollbar" id="app-view">
+        <section id="home" class="page active px-8 mt-4">
+            <h1 class="serif text-4xl mb-6 leading-tight">Kiến thiết<br><span class="text-gray-400 italic">không gian mới.</span></h1>
+            
+            <div class="flex gap-4 overflow-x-auto mb-6 pb-2 no-scrollbar">
+                <button onclick="app.filterCategory('Tất cả', this)" class="category-btn px-6 py-2 bg-black text-white rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap">Tất cả</button>
+                <button onclick="app.filterCategory('Sofa', this)" class="category-btn px-6 py-2 border rounded-full text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Sofa</button>
+                <button onclick="app.filterCategory('Bàn', this)" class="category-btn px-6 py-2 border rounded-full text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Bàn</button>
+                <button onclick="app.filterCategory('Ghế', this)" class="category-btn px-6 py-2 border rounded-full text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Ghế</button>
+                <button onclick="app.filterCategory('Đèn', this)" class="category-btn px-6 py-2 border rounded-full text-[9px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Đèn</button>
+            </div>
+
+            <div class="flex justify-between items-center mb-6 px-1">
+                <span id="product-count" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">0 Sản phẩm</span>
+                <select id="sort-select" onchange="app.applySort(this.value)" class="text-[10px] font-extrabold uppercase bg-transparent outline-none cursor-pointer appearance-none text-black">
+                    <option value="default">Mặc định</option>
+                    <option value="name-asc">Tên: A-Z</option>
+                    <option value="price-asc">Giá tăng dần</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-4 gap-y-8" id="grid-home"></div>
+        </section>
+
+        <section id="detail" class="page"></section>
+
+        <section id="cart" class="page px-8"></section>
+        <section id="profile" class="page px-8">
+    <div class="pt-10 pb-8 flex flex-col items-center border-b border-gray-100">
+        <div class="relative group cursor-pointer" onclick="document.getElementById('avatar-upload').click()">
+            <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-amber-500/20 p-1">
+                <img id="user-avatar" src="https://i.pravatar.cc/150?u=neo" class="w-full h-full rounded-full object-cover">
+            </div>
+            <div class="absolute bottom-0 right-0 bg-black text-white p-2 rounded-full border-2 border-white shadow-lg">
+                <i data-lucide="camera" class="w-3 h-3"></i>
+            </div>
+            <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="app.changeAvatar(event)">
+        </div>
+
+        <div class="mt-4 text-center">
+            <div class="flex items-center gap-2 justify-center">
+                <input type="text" id="user-name-input" 
+                       class="serif text-2xl text-center bg-transparent border-b border-transparent focus:border-amber-500 outline-none w-48" 
+                       value="Nguyễn Thế Anh" onchange="app.updateUser(this.value)">
+                <i data-lucide="edit-2" class="w-3 h-3 text-gray-400"></i>
+            </div>
+            <span id="user-rank-label" class="text-[9px] font-bold bg-black text-white px-3 py-1 rounded-full uppercase tracking-widest mt-2 inline-block">Gold Member</span>
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <h4 class="text-[10px] uppercase font-bold text-gray-400 mb-4 tracking-[2px]">Cài đặt hệ thống</h4>
+        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl cursor-pointer" onclick="app.toggleTheme()">
+            <div class="flex items-center gap-3">
+                <i data-lucide="moon" class="w-4 h-4 text-amber-600"></i>
+                <span class="text-xs font-semibold">Giao diện tối</span>
+            </div>
+            <div id="theme-btn" class="w-10 h-5 bg-gray-200 rounded-full p-1 transition-all">
+                <div id="theme-dot" class="w-3 h-3 bg-white rounded-full toggle-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <div class="flex justify-between items-end mb-4">
+            <h4 class="text-[10px] uppercase font-bold text-gray-400 tracking-[2px]">Lịch sử đơn hàng</h4>
+            <span class="text-[9px] text-amber-600 font-bold uppercase underline">Xem tất cả</span>
+        </div>
+        <div id="history-list" class="space-y-3">
+            </div>
+    </div>
+
+    <button class="w-full mt-12 py-4 text-gray-400 text-[10px] font-bold uppercase tracking-[4px] border border-gray-100 rounded-2xl active:bg-red-50 active:text-red-500">
+        Đăng xuất
+    </button>
+</section>
+    </div>
+
+    <div id="search-sheet" class="bottom-sheet h-[85%] px-8 pt-4">
+        <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-8"></div>
+        <input type="text" id="search-input" class="w-full py-4 text-xl serif border-b border-gray-100 outline-none" placeholder="Tìm kiếm nội thất..." oninput="app.searchLogic(this.value)">
+        <div id="search-results" class="space-y-4 mt-6 overflow-y-auto max-h-[70%] no-scrollbar"></div>
+    </div>
+
+    <nav class="absolute bottom-0 w-full h-24 bg-white/90 backdrop-blur-xl flex justify-around items-center px-10 border-t border-gray-50 z-[80]">
+        <button onclick="app.showPage('home')" class="nav-trigger active" data-page="home"><i data-lucide="home"></i></button>
+        <button onclick="toggleSheet('search-sheet')" class="nav-trigger"><i data-lucide="search"></i></button>
+        <button onclick="app.showPage('cart')" class="nav-trigger" data-page="cart"><i data-lucide="shopping-bag"></i></button>
+        <button onclick="app.showPage('profile')" class="nav-trigger" data-page="profile"><i data-lucide="user"></i></button>
+    </nav>
+</div>
+
+<script>
+    const DB = [
+        { id: 1, name: "Sofa Heritage", price: 32000000, img: "https://images.pexels.com/photos/1866149/pexels-photo-1866149.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Sofa", mat: "Da bò Ý, Gỗ óc chó", concept: "Mid-Century", desc: "Đường nét cổ điển, đệm ngồi êm ái cho phòng khách sang trọng." },
+        { id: 2, name: "Velvet Cloud", price: 45000000, img: "https://images.pexels.com/photos/3757055/pexels-photo-3757055.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Sofa", mat: "Nhung tuyết, Thép vàng", concept: "Modern Lux", desc: "Thiết kế bo tròn như những đám mây, mang lại sự thư giãn tuyệt đối." },
+        { id: 3, name: "Eames Lounge Chair", price: 28500000, img: "https://images.pexels.com/photos/4458519/pexels-photo-4458519.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Ghế", mat: "Da thật, Gỗ dán lớp", concept: "Iconic Design", desc: "Biểu tượng của sự xa hoa và gu thẩm mỹ tinh tế." },
+        { id: 4, name: "Wishbone Y-Chair", price: 3200000, img: "https://images.pexels.com/photos/2062426/pexels-photo-2062426.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Ghế", mat: "Gỗ tần bì, Dây cói", concept: "Scandinavian", desc: "Thiết kế chữ Y đặc trưng, nhẹ nhàng và bền bỉ." },
+        { id: 5, name: "Modular Sofa System", price: 62000000, img: "https://images.pexels.com/photos/4846087/pexels-photo-4846087.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Sofa", mat: "Vải Canvas, Cao su non", concept: "Flexible", desc: "Có thể tháo rời và lắp ghép linh hoạt theo không gian phòng." },
+        { id: 6, name: "Teddy Armchair", price: 12500000, img: "https://images.pexels.com/photos/3935333/pexels-photo-3935333.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Ghế", mat: "Vải lông cừu giả", concept: "Cozy Space", desc: "Chiếc ghế ôm trọn cơ thể, tạo cảm giác ấm áp." },
+        { id: 7, name: "Noguchi Glass Table", price: 15800000, img: "https://images.pexels.com/photos/3209045/pexels-photo-3209045.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Bàn", mat: "Kính 12mm, Gỗ sồi", concept: "Sculptural", desc: "Sự cân bằng hoàn hảo giữa điêu khắc và ứng dụng." },
+        { id: 8, name: "Marble Dining", price: 39000000, img: "https://images.pexels.com/photos/6585757/pexels-photo-6585757.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Bàn", mat: "Đá cẩm thạch trắng", concept: "Minimalist", desc: "Mặt đá nguyên khối vân mây, chân thép sơn tĩnh điện." },
+        { id: 9, name: "Oak Work Desk", price: 10500000, img: "https://images.pexels.com/photos/1297611/pexels-photo-1297611.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Bàn", mat: "Gỗ sồi tự nhiên", concept: "Nordic Desk", desc: "Không gian làm việc gọn gàng khơi nguồn sáng tạo." },
+        { id: 10, name: "Coffee Walnut", price: 8200000, img: "https://images.pexels.com/photos/3270223/pexels-photo-3270223.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Bàn", mat: "Gỗ óc chó", concept: "Natural Art", desc: "Vân gỗ sâu, màu sắc trầm ấm tạo điểm nhấn." },
+        { id: 11, name: "Arco Floor Lamp", price: 9500000, img: "https://images.pexels.com/photos/1123262/pexels-photo-1123262.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Đèn", mat: "Inox, Đế đá Marble", concept: "Classic Light", desc: "Đèn sàn vươn dài giúp chiếu sáng trung tâm bàn trà." },
+        { id: 12, name: "Pendant Artichoke", price: 21000000, img: "https://images.pexels.com/photos/2428276/pexels-photo-2428276.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Đèn", mat: "Lá thép sơn mờ", concept: "Iconic Lamp", desc: "Ánh sáng tán xạ nghệ thuật, không gây chói mắt." },
+        { id: 13, name: "Solaris Table Lamp", price: 4200000, img: "https://images.pexels.com/photos/1112598/pexels-photo-1112598.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Đèn", mat: "Thủy tinh, Đồng", concept: "Soft Glow", desc: "Đèn bàn tạo ánh sáng nền dịu nhẹ cho phòng ngủ." },
+        { id: 14, name: "Nordic Sideboard", price: 18500000, img: "https://images.pexels.com/photos/3316924/pexels-photo-3316924.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Kệ", mat: "Gỗ sồi, Mây đan", concept: "Clean Line", desc: "Kệ lưu trữ đa năng cho phòng ăn hoặc hành lang." },
+        { id: 15, name: "Walnut Bookshelf", price: 24000000, img: "https://images.pexels.com/photos/2067561/pexels-photo-2067561.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Kệ", mat: "Gỗ óc chó khối", concept: "Zen Storage", desc: "Kệ sách mở trưng bày các tác phẩm nghệ thuật." },
+        { id: 16, name: "Bistro Set", price: 8900000, img: "https://images.pexels.com/photos/2041005/pexels-photo-2041005.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Bàn", mat: "Gỗ Teak", concept: "Outdoor", desc: "Bộ bàn ghế nhỏ cho ban công ngắm phố." },
+        { id: 17, name: "Minimal Mirror", price: 5600000, img: "https://images.pexels.com/photos/1528975/pexels-photo-1528975.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Decor", mat: "Kính Bỉ, Nhôm", concept: "Reflection", desc: "Gương soi toàn thân giúp mở rộng không gian phòng." },
+        { id: 18, name: "Velvet Pouf", price: 2200000, img: "https://images.pexels.com/photos/1090029/pexels-photo-1090029.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Decor", mat: "Nhung, Hạt xốp", concept: "Playful", desc: "Ghế đôn nhỏ gọn, dễ dàng di chuyển khắp nhà." },
+        { id: 19, name: "Smart Wardrobe", price: 48000000, img: "https://images.pexels.com/photos/1080721/pexels-photo-1080721.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Kệ", mat: "Gỗ công nghiệp", concept: "Tech Home", desc: "Tủ áo tích hợp đèn LED cảm ứng thông minh." },
+        { id: 20, name: "Rattan Chair", price: 4500000, img: "https://images.pexels.com/photos/2258083/pexels-photo-2258083.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Ghế", mat: "Mây tự nhiên", concept: "Vintage", desc: "Ghế mây thủ công mang lại nét mộc mạc cho căn nhà." },
+        { id: 21, name: "Marble Island", price: 55000000, img: "https://images.pexels.com/photos/2724748/pexels-photo-2724748.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Bàn", mat: "Đá Granite", concept: "Chef Kitchen", desc: "Đảo bếp kết hợp bàn ăn nhanh tiện lợi." },
+        { id: 22, name: "Zen Bed Frame", price: 22500000, img: "https://images.pexels.com/photos/1454806/pexels-photo-1454806.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Sofa", mat: "Gỗ Ash", concept: "Minimalist", desc: "Khung giường thấp phong cách Nhật Bản." },
+        { id: 23, name: "Leather Bench", price: 7800000, img: "https://images.pexels.com/photos/2082092/pexels-photo-2082092.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Ghế", mat: "Da nâu, Sắt đen", concept: "Industrial", desc: "Ghế băng dài cho khu vực lối vào." },
+        { id: 24, name: "Ceramic Vase", price: 1200000, img: "https://images.pexels.com/photos/4207892/pexels-photo-4207892.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Decor", mat: "Gốm thủ công", concept: "Wabi-sabi", desc: "Bình hoa trang trí với vẻ đẹp không hoàn hảo." },
+        { id: 25, name: "Bamboo Screen", price: 3500000, img: "https://images.pexels.com/photos/3356416/pexels-photo-3356416.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Decor", mat: "Tre", concept: "Natural Divider", desc: "Vách ngăn nhẹ nhàng chia tách khu vực." },
+        { id: 26, name: "Metal Bar Stool", price: 1800000, img: "https://images.pexels.com/photos/2647714/pexels-photo-2647714.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Ghế", mat: "Thép sơn tĩnh điện", concept: "Modern Bar", desc: "Ghế quầy bar bền bỉ cho bếp hiện đại." },
+        { id: 27, name: "Round Oak Mirror", price: 2900000, img: "https://images.pexels.com/photos/1528975/pexels-photo-1528975.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Decor", mat: "Gỗ sồi, Kính", concept: "Soft Circle", desc: "Gương tròn treo tường trang nhã." },
+        { id: 28, name: "Office Executive", price: 15500000, img: "https://images.pexels.com/photos/1957477/pexels-photo-1957477.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Ghế", mat: "Da thật, Nhôm", concept: "Office Lux", desc: "Ghế làm việc đẳng cấp cho lãnh đạo." },
+        { id: 29, name: "Canvas Abstract", price: 4500000, img: "https://images.pexels.com/photos/1585397/pexels-photo-1585397.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Decor", mat: "Vải Toan, Sơn dầu", concept: "Modern Art", desc: "Tranh trừu tượng làm bừng sáng mảng tường." },
+        { id: 30, name: "Wool Rug", price: 13500000, img: "https://images.pexels.com/photos/3771691/pexels-photo-3771691.jpeg?auto=compress&cs=tinysrgb&w=800", cat: "Decor", mat: "Len cừu Thổ Nhĩ Kỳ", concept: "Soft Texture", desc: "Thảm trải sàn mang lại sự ấm áp." }
+    ];
+
+    const app = {
+    state: { 
+        cart: [], 
+        history: [], // Lưu trữ các đơn hàng đã thanh toán
+        currentCat: 'Tất cả', 
+        currentSort: 'default' 
+    },
+
+    init() { 
+        this.applySort('default'); 
+        this.renderCart(); // Khởi tạo giỏ hàng trống
+        lucide.createIcons(); 
+    },
+
+    // --- LOGIC TRANG CHỦ & PHÂN LOẠI ---
+    filterCategory(cat, btn) {
+        this.state.currentCat = cat;
+        document.querySelectorAll('.category-btn').forEach(b => {
+            b.classList.replace('bg-black', 'border');
+            b.classList.replace('text-white', 'text-gray-400');
+        });
+        btn.classList.replace('border', 'bg-black');
+        btn.classList.replace('text-gray-400', 'text-white');
+        this.applySort(this.state.currentSort);
+    },
+
+    applySort(criteria) {
+        this.state.currentSort = criteria;
+        let list = this.state.currentCat === 'Tất cả' ? [...DB] : DB.filter(p => p.cat === this.state.currentCat);
+        if(criteria === 'name-asc') list.sort((a,b) => a.name.localeCompare(b.name));
+        if(criteria === 'price-asc') list.sort((a,b) => a.price - b.price);
+        this.renderGrid(list);
+    },
+
+    renderGrid(products) {
+        const grid = document.getElementById('grid-home');
+        document.getElementById('product-count').innerText = `${products.length} Sản phẩm`;
+        grid.innerHTML = products.map(p => `
+            <div onclick="app.viewProduct(${p.id})" class="product-card cursor-pointer">
+                <div class="aspect-[0.8] rounded-[24px] overflow-hidden bg-gray-50 mb-4 relative">
+                    <img src="${p.img}" loading="lazy" class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4 bg-white/90 text-[8px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter shadow-sm">New</div>
+                </div>
+                <h3 class="text-[10px] font-bold uppercase truncate tracking-tight">${p.name}</h3>
+                <p class="text-[11px] text-gray-400 mt-1">${p.price.toLocaleString()}đ</p>
+            </div>
+        `).join('');
+    },
+
+    // --- CHI TIẾT SẢN PHẨM ---
+    viewProduct(id) {
+        const p = DB.find(i => i.id === id);
+        document.getElementById('detail').innerHTML = `
+            <div class="relative h-[480px]">
+                <img src="${p.img}" class="w-full h-full object-cover">
+                <button onclick="app.showPage('home')" class="absolute top-8 left-8 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+            </div>
+            <div class="px-8 pt-10 pb-20">
+                <h2 class="serif text-4xl mb-2">${p.name}</h2>
+                <p class="text-[10px] font-bold text-amber-600 uppercase tracking-[4px] mb-8">${p.concept}</p>
+                <div class="grid grid-cols-2 gap-8 mb-10">
+                    <div><h4 class="text-[9px] uppercase font-bold text-gray-300 mb-2">Chất liệu</h4><p class="text-xs font-semibold">${p.mat}</p></div>
+                    <div><h4 class="text-[9px] uppercase font-bold text-gray-300 mb-2">Giá niêm yết</h4><p class="text-lg font-bold">${p.price.toLocaleString()}đ</p></div>
+                </div>
+                <p class="text-sm text-gray-400 font-light leading-relaxed mb-10">${p.desc}</p>
+                <button onclick="app.addToCart(${p.id})" class="btn-premium">Thêm vào giỏ hàng</button>
+            </div>
+        `;
+        this.showPage('detail');
+    },
+
+    // --- LOGIC GIỎ HÀNG (QUAN TRỌNG) ---
+    addToCart(id) {
+        const product = DB.find(p => p.id === id);
+        const itemInCart = this.state.cart.find(item => item.id === id);
+        
+        if (itemInCart) {
+            itemInCart.quantity += 1;
+        } else {
+            this.state.cart.push({ ...product, quantity: 1 });
+        }
+        
+        this.updateCartBadge();
+        this.renderCart();
+        alert('Đã thêm vào giỏ hàng!');
+    },
+
+    updateQuantity(id, delta) {
+        const item = this.state.cart.find(p => p.id === id);
+        if (item) {
+            item.quantity += delta;
+            if (item.quantity <= 0) {
+                this.state.cart = this.state.cart.filter(p => p.id !== id);
+            }
+        }
+        this.updateCartBadge();
+        this.renderCart();
+    },
+
+    updateCartBadge() {
+        const badge = document.getElementById('cart-badge');
+        const totalItems = this.state.cart.reduce((sum, item) => sum + item.quantity, 0);
+        if (totalItems > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    },
+
+    renderCart() {
+        const cartContainer = document.getElementById('cart');
+        if (this.state.cart.length === 0) {
+            cartContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-[600px] text-center">
+                    <i data-lucide="shopping-bag" class="w-12 h-12 text-gray-200 mb-4"></i>
+                    <p class="serif text-xl">Giỏ hàng trống</p>
+                    <button onclick="app.showPage('home')" class="text-amber-600 text-[10px] font-bold uppercase mt-4 underline">Tiếp tục mua sắm</button>
+                </div>`;
+        } else {
+            const total = this.state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            let itemsHtml = this.state.cart.map(item => `
+                <div class="flex gap-4 items-center mb-6">
+                    <img src="${item.img}" class="w-20 h-20 rounded-2xl object-cover">
+                    <div class="flex-1">
+                        <h4 class="text-[11px] font-bold uppercase">${item.name}</h4>
+                        <p class="text-[10px] text-gray-400">${item.price.toLocaleString()}đ</p>
+                        <div class="flex items-center gap-4 mt-2">
+                            <button onclick="app.updateQuantity(${item.id}, -1)" class="w-6 h-6 border rounded-full">-</button>
+                            <span class="text-xs font-bold">${item.quantity}</span>
+                            <button onclick="app.updateQuantity(${item.id}, 1)" class="w-6 h-6 border rounded-full">+</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            cartContainer.innerHTML = `
+                <h2 class="serif text-3xl mt-10 mb-8">Giỏ hàng</h2>
+                <div class="space-y-2">${itemsHtml}</div>
+                <div class="mt-10 pt-6 border-t border-gray-100">
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-gray-400 text-xs font-bold uppercase">Tổng cộng</span>
+                        <span class="text-2xl serif">${total.toLocaleString()}đ</span>
+                    </div>
+                    <button onclick="app.checkout()" class="btn-premium">Thanh toán ngay</button>
+                </div>
+            `;
+        }
+        lucide.createIcons();
+    },
+
+    // --- THANH TOÁN & LỊCH SỬ ---
+    checkout() {
+        const total = this.state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const order = {
+            id: '#' + Math.floor(Math.random() * 10000),
+            date: new Date().toLocaleDateString('vi-VN'),
+            total: total,
+            count: this.state.cart.reduce((sum, item) => sum + item.quantity, 0)
+        };
+        
+        this.state.history.unshift(order);
+        this.state.cart = [];
+        this.updateCartBadge();
+        this.renderHistory();
+        this.showPage('profile');
+        alert('Thanh toán thành công!');
+    },
+
+    renderHistory() {
+        const historyContainer = document.getElementById('history-list');
+        if (this.state.history.length === 0) {
+            historyContainer.innerHTML = `<p class="text-[10px] text-gray-400 italic">Chưa có đơn hàng nào.</p>`;
+            return;
+        }
+        
+        historyContainer.innerHTML = this.state.history.map(order => `
+            <div class="p-4 bg-gray-50 rounded-2xl flex justify-between items-center">
+                <div>
+                    <h5 class="text-[11px] font-bold">${order.id}</h5>
+                    <p class="text-[9px] text-gray-400">${order.date} • ${order.count} sản phẩm</p>
+                </div>
+                <div class="text-[11px] font-bold text-amber-600">${order.total.toLocaleString()}đ</div>
+            </div>
+        `).join('');
+    },
+
+    // --- CÁC CHỨC NĂNG KHÁC ---
+    showPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-trigger').forEach(n => {
+            n.classList.remove('active');
+            if(n.dataset.page === id) n.classList.add('active');
+        });
+        document.getElementById('app-view').scrollTop = 0;
+        closeAllSheets();
+        lucide.createIcons();
+    },
+
+    searchLogic(query) {
+        const res = document.getElementById('search-results');
+        const q = query.toLowerCase().trim();
+        if(!q) { res.innerHTML = ""; return; }
+        const matches = DB.filter(p => p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
+        res.innerHTML = matches.map(p => `
+            <div onclick="app.viewProduct(${p.id})" class="flex gap-4 items-center p-3 active:bg-gray-50 rounded-2xl">
+                <img src="${p.img}" class="w-14 h-14 rounded-xl object-cover">
+                <div class="flex-1"><h4 class="text-[11px] font-bold uppercase">${p.name}</h4><p class="text-[10px] text-gray-400">${p.price.toLocaleString()}đ</p></div>
+            </div>
+        `).join('');
+    }
+};
+
+    function toggleSheet(id) {
+        document.getElementById(id).classList.add('open');
+        document.getElementById('overlay').style.display = 'block';
+    }
+
+    function closeAllSheets() {
+        document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('open'));
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    app.init();
+</script>
+</body>
+</html>
